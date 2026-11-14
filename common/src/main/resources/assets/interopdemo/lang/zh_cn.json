@@ -1,0 +1,6 @@
+{
+  "itemGroup.interopdemo": "互通示例",
+  "item.interopdemo.example_item": "示例物品",
+  "block.interopdemo.example_block": "示例方块",
+  "misc.interopdemo.greeting": "来自跨加载器模组的问候！"
+}

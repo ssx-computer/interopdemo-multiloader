@@ -1,0 +1,6 @@
+{
+  "itemGroup.interopdemo": "Interop Demo",
+  "item.interopdemo.example_item": "Example Item",
+  "block.interopdemo.example_block": "Example Block",
+  "misc.interopdemo.greeting": "Hello from a loader-agnostic mod!"
+}

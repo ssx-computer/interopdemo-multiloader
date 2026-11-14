@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "interopdemo:block/example_block"
+    }
+  }
+}

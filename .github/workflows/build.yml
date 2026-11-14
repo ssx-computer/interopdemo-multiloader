@@ -1,0 +1,82 @@
+name: Build
+
+# 一次构建同时产出 Fabric 与 NeoForge 两个 jar。
+# GitHub 托管 Runner 有 16 GB 内存，足以跑完 NeoForm 反编译 Minecraft 这一步
+# （本机 3.8 GB 内存是跑不动的，这也是推荐用 CI 出包的原因）。
+
+on:
+  push:
+    branches: [main, master]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Gradle build (both loaders)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # 从 Windows 端推送时 gradlew 的可执行位可能丢失，Linux Runner 上会报 Permission denied
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Setup Gradle (dependency & configuration cache)
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      - name: Build
+        run: ./gradlew build --no-daemon --stacktrace
+
+      - name: Show produced jars
+        run: |
+          echo "== fabric =="; ls -l fabric/build/libs
+          echo "== neoforge =="; ls -l neoforge/build/libs
+          echo "== common（不参与分发）=="; ls -l common/build/libs
+
+      - name: Upload mod jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: interopdemo-jars
+          path: |
+            fabric/build/libs/*.jar
+            neoforge/build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 30
+
+  # 打 tag（例如 v1.0.0）推送时，额外把 jar 挂到 GitHub Release 上
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: interopdemo-jars
+          path: dist
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.jar
+          generate_release_notes: true
